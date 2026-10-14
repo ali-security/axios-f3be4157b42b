@@ -16,6 +16,7 @@ jobs:
   ci:
     name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
 
@@ -46,6 +47,7 @@ jobs:
   bump-version-and-create-pr:
     name: Bump version and create PR v0.x
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: ci
     permissions:
       contents: write

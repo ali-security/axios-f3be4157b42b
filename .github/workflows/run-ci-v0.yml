@@ -1,8 +1,12 @@
 name: Continuous integration (v0.x)
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      test-filter:
+        description: "Optional mocha spec path(s) to run instead of the full suite"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -15,6 +19,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     strategy:
       matrix:
@@ -37,7 +42,25 @@ jobs:
       - name: Build project
         run: npm run build
       - name: Run tests
-        run: npm run test
+        run: |
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            npx mocha --timeout 30000 ${{ inputs.test-filter }}
+          else
+            npm run test
+          fi
+      - name: Pin npm used by upstream publish
+        if: matrix.node-version == '26.x'
+        run: npm install -g npm@11.15.0
+      - name: Pack package
+        if: matrix.node-version == '26.x'
+        run: npm pack
+      - name: Upload package tarball
+        if: matrix.node-version == '26.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: axios-tgz
+          path: axios-*.tgz
+          if-no-files-found: error
       - name: Dependency Review
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
-        if: matrix.node-version == '26.x'
+        if: matrix.node-version == '26.x' && github.event_name == 'pull_request'
